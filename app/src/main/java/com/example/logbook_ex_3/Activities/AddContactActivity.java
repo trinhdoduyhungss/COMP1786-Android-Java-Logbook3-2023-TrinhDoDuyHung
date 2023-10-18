@@ -1,17 +1,26 @@
 package com.example.logbook_ex_3.Activities;
+import java.time.LocalDate;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.content.Intent;
 
+import androidx.annotation.RequiresApi;
 import androidx.room.Room;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.view.View;
+import android.app.Dialog;
 import android.widget.Toast;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.DatePicker;
 import android.widget.RadioButton;
+import android.app.DatePickerDialog;
 
 import com.example.logbook_ex_3.R;
 import com.example.logbook_ex_3.Models.Person;
@@ -21,6 +30,31 @@ public class AddContactActivity extends AppCompatActivity {
     private AppDatabase appDatabase;
     private String selectedImageUrl = "";
 
+    public static class DatePickerFragment extends DialogFragment implements
+            DatePickerDialog.OnDateSetListener {
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(@Nullable Bundle savedInstanceState)
+        {
+            LocalDate d = LocalDate.now();
+            int year = d.getYear();
+            int month = d.getMonthValue();
+            int day = d.getDayOfMonth();
+            return new DatePickerDialog(getActivity(), this, year, --month, day);}
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        @Override
+        public void onDateSet(DatePicker datePicker, int year, int month, int day){
+            LocalDate dob = LocalDate.of(year, ++month, day);
+            ((AddContactActivity)getActivity()).updateDOB(dob);
+        }
+    }
+
+    public void updateDOB(LocalDate dob){
+        EditText dobControl = findViewById(R.id.dobText);
+        dobControl.setText(dob.toString());
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,6 +63,17 @@ public class AddContactActivity extends AppCompatActivity {
         appDatabase = Room.databaseBuilder(getApplicationContext(), AppDatabase.class, "sqlite_example_db")
                 .allowMainThreadQueries() // For simplicity, don't use this in production
                 .build();
+
+        EditText dobControl = findViewById(R.id.dobText);
+        dobControl.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                DialogFragment newFragment = new DatePickerFragment();
+                newFragment.show(getSupportFragmentManager(), "datePicker");
+            }
+        });
+
+        dobControl.setKeyListener(null);
 
         Button saveDetailsButton = findViewById(R.id.saveDetailsButton);
 
@@ -93,6 +138,36 @@ public class AddContactActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private Boolean validInputs(String name, String email, String dob){
+        if(name == null || name.isEmpty()){
+            Toast.makeText(this, "Please enter a name",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        if (email == null || email.isEmpty()) {
+            Toast.makeText(this, "Please enter an email",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        else if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            Toast.makeText(this, "Please enter a valid email",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        if (LocalDate.parse(dob).isAfter(LocalDate.now())) {
+            Toast.makeText(this, "Please enter a date of birth in the past",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        return true;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void saveDetails() {
         if (selectedImageUrl == null || selectedImageUrl.isEmpty() || selectedImageUrl.length() < 2) {
             Toast.makeText(this, "Please select an image",
@@ -109,6 +184,10 @@ public class AddContactActivity extends AppCompatActivity {
         String name = nameTxt.getText().toString();
         String dob = dobTxt.getText().toString();
         String email = emailTxt.getText().toString();
+
+        if(!validInputs(name, email, dob)){
+            return;
+        }
 
         Person person = new Person();
         person.name = name;

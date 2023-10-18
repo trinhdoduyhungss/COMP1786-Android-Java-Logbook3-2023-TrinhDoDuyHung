@@ -3,6 +3,7 @@ import java.util.List;
 
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.view.LayoutInflater;
 
@@ -31,6 +32,8 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
         Person person = persons.get(position);
         holder.personName.setText(person.name);
         holder.personDetails.setText(person.dob + " " + person.email);
+        int imageId = holder.itemView.getResources().getIdentifier(person.url_avatar, "drawable", holder.itemView.getContext().getPackageName());
+        holder.personAvatar.setImageResource(imageId);
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -49,11 +52,13 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ContactV
 
     public static class ContactViewHolder extends RecyclerView.ViewHolder {
         TextView personName, personDetails;
+        ImageView personAvatar;
 
         public ContactViewHolder(@NonNull View itemView) {
             super(itemView);
             personName = itemView.findViewById(R.id.personName);
             personDetails = itemView.findViewById(R.id.personDetails);
+            personAvatar = itemView.findViewById(R.id.avatarImage);
         }
     }
 

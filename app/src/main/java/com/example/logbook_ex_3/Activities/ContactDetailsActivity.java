@@ -1,22 +1,87 @@
 package com.example.logbook_ex_3.Activities;
-import java.util.List;
+import java.time.LocalDate;
 
+import android.app.Dialog;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.content.Intent;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.app.DatePickerDialog;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import androidx.room.Room;
+import androidx.fragment.app.DialogFragment;
+
 import com.example.logbook_ex_3.R;
 import com.example.logbook_ex_3.Models.Person;
 import com.example.logbook_ex_3.Database.AppDatabase;
 
 public class ContactDetailsActivity extends AppCompatActivity {
     private AppDatabase appDatabase;
+
+    public static class DatePickerFragment extends DialogFragment implements
+            DatePickerDialog.OnDateSetListener {
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(@Nullable Bundle savedInstanceState)
+        {
+            LocalDate d = LocalDate.now();
+            int year = d.getYear();
+            int month = d.getMonthValue();
+            int day = d.getDayOfMonth();
+            return new DatePickerDialog(getActivity(), this, year, --month, day);}
+        @RequiresApi(api = Build.VERSION_CODES.O)
+        @Override
+        public void onDateSet(DatePicker datePicker, int year, int month, int day){
+            LocalDate dob = LocalDate.of(year, ++month, day);
+            ((ContactDetailsActivity)getActivity()).updateDOB(dob);
+        }
+    }
+
+    public void updateDOB(LocalDate dob){
+        EditText dobControl = findViewById(R.id.dobEditText);
+        dobControl.setText(dob.toString());
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private Boolean validInputs(String name, String email, String dob){
+        if(name == null || name.isEmpty()){
+            Toast.makeText(this, "Please enter a name",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        if (email == null || email.isEmpty()) {
+            Toast.makeText(this, "Please enter an email",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        else if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            Toast.makeText(this, "Please enter a valid email",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        if (LocalDate.parse(dob).isAfter(LocalDate.now())) {
+            Toast.makeText(this, "Please enter a date of birth in the past",
+                    Toast.LENGTH_LONG
+            ).show();
+            return false;
+        }
+        return true;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,6 +107,16 @@ public class ContactDetailsActivity extends AppCompatActivity {
         name.setText(personName);
         dob.setText(personDob);
         email.setText(personEmail);
+
+        dob.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                DialogFragment newFragment = new ContactDetailsActivity.DatePickerFragment();
+                newFragment.show(getSupportFragmentManager(), "datePicker");
+            }
+        });
+
+        dob.setKeyListener(null);
 
         // Capture the layout's ImageView and set the image as its image
         ImageView image = findViewById(R.id.avatarImageView);
@@ -70,7 +145,12 @@ public class ContactDetailsActivity extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     public void saveDetails(Long personId, String name, String dob, String email, String avatar) {
+        if(!validInputs(name, email, dob)){
+            return;
+        }
+
         Person person = new Person();
         person.person_id = personId;
         person.name = name;
